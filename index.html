@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>FridgeChef</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital@0;1&family=Patrick+Hand&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cream: #FAF6EE;
+      --brown: #3D3229;
+      --brown-soft: #6B5E54;
+      --yellow: #FFE08A;
+      --orange: #FFB347;
+      --mint: #B8EBD4;
+      --tomato: #FF6B6B;
+      --glass: rgba(255, 255, 255, 0.72);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: var(--cream);
+      color: var(--brown);
+      -webkit-font-smoothing: antialiased;
+    }
+    .hand { font-family: "Patrick Hand", cursive; }
+    .serif { font-family: "Lora", Georgia, serif; }
+
+    /* ===== Full-screen page system (no body scroll) ===== */
+    #app {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    .screen {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.3s ease, visibility 0.3s;
+      background: var(--cream);
+      overflow: hidden;
+    }
+    .screen.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    .screen-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      overflow-x: hidden;
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+    }
+    .screen-body {
+      display: flex;
+      flex-direction: column;
+      padding: calc(12px + var(--safe-top)) 20px calc(20px + var(--safe-bottom));
+      max-width: 440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .screen-footer {
+      flex-shrink: 0;
+      padding: 0 20px calc(12px + var(--safe-bottom));
+      max-width: 440px;
+      margin: 0 auto;
+      width: 100%;
+      background: var(--cream);
+    }
+
+    /* ===== iOS-style segmented language control ===== */
+    .top-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      flex-shrink: 0;
+      min-height: 44px;
+      margin-bottom: 8px;
+    }
+    .seg-control {
+      display: inline-flex;
+      padding: 3px;
+      background: rgba(0,0,0,.06);
+      border-radius: 10px;
+      border: 2px solid var(--brown);
+      box-shadow: 2px 2px 0 var(--brown);
+    }
+    .seg-btn {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--brown-soft);
+      cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+    .seg-btn.active {
+      background: #fff;
+      color: var(--brown);
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    /* ===== COVER — Apple layout + hand-drawn accents ===== */
+    #page-cover .screen-body {
+      justify-content: flex-start;
+      text-align: center;
+      padding-top: calc(12px + var(--safe-top));
+      min-height: min-content;
+    }
+    .cover-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 0 32px;
+    }
+    .hero-icon-wrap {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #fff 0%, var(--mint) 100%);
+      border: 3px solid var(--brown);
+      box-shadow: 6px 6px 0 var(--brown);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+      margin-bottom: 28px;
+      position: relative;
+    }
+    .hero-icon-wrap::after {
+      content: "✦";
+      position: absolute;
+      top: -8px;
+      right: -4px;
+      font-size: 22px;
+      color: var(--orange);
+      font-family: "Patrick Hand", cursive;
+    }
+    .cover-eyebrow {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 10px;
+    }
+    .cover-title {
+      font-size: clamp(2.5rem, 11vw, 3.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      color: var(--brown);
+    }
+    .cover-title .hand {
+      display: block;
+      font-size: .45em;
+      font-weight: 400;
+      color: var(--tomato);
+      margin-top: 4px;
+      letter-spacing: 0;
+    }
+    .cover-subtitle {
+      margin-top: 16px;
+      font-size: 17px;
+      line-height: 1.5;
+      font-weight: 400;
+      color: var(--brown-soft);
+      max-width: 300px;
+    }
+    .cover-features {
+      display: flex;
+      gap: 10px;
+      margin-top: 32px;
+      width: 100%;
+      max-width: 340px;
+      justify-content: center;
+    }
+    .feat-pill {
+      flex: 1;
+      padding: 12px 8px;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 2.5px solid var(--brown);
+      border-radius: 16px;
+      box-shadow: 3px 3px 0 var(--brown);
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--brown);
+    }
+    .feat-pill span { display: block; font-size: 20px; margin-bottom: 4px; }
+    .cover-cta-wrap {
+      width: 100%;
+      max-width: 340px;
+      margin: 24px auto 0;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 17px 24px;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #fff;
+      background: var(--tomato);
+      border: 3px solid var(--brown);
+      border-radius: 14px;
+      box-shadow: 5px 5px 0 var(--brown);
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-primary:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--brown);
+    }
+    .cover-footnote {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--brown-soft);
+      opacity: .7;
+    }
+
+    /* ===== Inner pages ===== */
+    .nav-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 0;
+      border: none;
+      background: none;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--tomato);
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+    .page-desc {
+      font-size: 15px;
+      color: var(--brown-soft);
+      line-height: 1.45;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #fff;
+      border: 3px solid var(--brown);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 5px 5px 0 var(--brown);
+    }
+    .card-label {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: block;
+    }
+    .add-row { display: flex; gap: 10px; }
+    .add-row input {
+      flex: 1;
+      padding: 14px 16px;
+      font-size: 16px;
+      border: 2.5px solid var(--brown);
+      border-radius: 12px;
+      background: var(--cream);
+      outline: none;
+    }
+    .add-row input:focus { box-shadow: 0 0 0 3px rgba(255, 107, 107, .25); }
+    .btn-plus {
+      width: 50px;
+      height: 50px;
+      flex-shrink: 0;
+      border-radius: 12px;
+      border: 2.5px solid var(--brown);
+      background: var(--mint);
+      font-size: 28px;
+      font-weight: 300;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 var(--brown);
+      color: var(--brown);
+    }
+    .select-hint {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--orange);
+      font-weight: 500;
+    }
+    .ingredient-pool {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 72px;
+      margin-top: 12px;
+      padding: 12px;
+      border: 2.5px dashed var(--brown);
+      border-radius: 14px;
+      background: var(--cream);
+    }
+    .ingredient-pool.empty-hint::before {
+      content: attr(data-hint);
+      width: 100%;
+      text-align: center;
+      padding: 16px 8px;
+      font-size: 14px;
+      color: var(--brown-soft);
+      opacity: .55;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: 2px solid var(--brown);
+      border-radius: 999px;
+      background: #fff;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s, transform .15s;
+    }
+    .chip.selected {
+      background: var(--yellow);
+      box-shadow: 2px 2px 0 var(--brown);
+      transform: scale(1.02);
+    }
+    .chip-x { opacity: .5; font-size: 18px; line-height: 1; }
+    .chip-x:hover { opacity: 1; color: var(--tomato); }
+    select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px 12px;
+      font-size: 15px;
+      border: 2px solid var(--brown);
+      border-radius: 10px;
+      background: #fff;
+    }
+    .prefs-block { margin-top: 16px; }
+    .prefs-block-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .prefs-main { display: grid; gap: 12px; }
+    @media (min-width: 400px) { .prefs-main { grid-template-columns: 1fr 1fr; } }
+    .prefs { display: grid; gap: 12px; margin-top: 14px; }
+    @media (min-width: 400px) { .prefs { grid-template-columns: 1fr 1fr; } }
+    .recipe-desc {
+      margin: 12px 0 4px;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--brown-soft);
+    }
+    .recipe-meta-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--orange);
+      font-size: 15px;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    .error {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,107,107,.12);
+      border: 2px solid var(--tomato);
+      color: var(--tomato);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .btn-block { margin-top: 16px; }
+
+    /* Loading screen */
+    #page-loading .screen-body {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .loader-ring {
+      width: 72px;
+      height: 72px;
+      border: 4px solid rgba(0,0,0,.08);
+      border-top-color: var(--tomato);
+      border-radius: 50%;
+      animation: spin .9s linear infinite;
+      margin-bottom: 24px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .loading-emoji { font-size: 48px; margin-bottom: 16px; animation: bounce 1.2s ease infinite; }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* Recipe page */
+    #page-recipe .screen-body { padding-bottom: 16px; }
+    .recipe-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--tomato);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .meta { text-align: center; margin-bottom: 16px; }
+    .tag {
+      display: inline-block;
+      padding: 4px 12px;
+      margin: 3px;
+      border: 2px solid var(--brown);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .tag-y { background: var(--yellow); }
+    .tag-m { background: var(--mint); }
+    h3.sec {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .step { display: flex; gap: 10px; margin: 10px 0; align-items: flex-start; }
+    .step-num {
+      width: 28px; height: 28px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--yellow);
+      border: 2px solid var(--brown);
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .step p { font-size: 15px; line-height: 1.5; color: var(--brown-soft); }
+    .tip-box, .why-box {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      border: 2px dashed var(--brown);
+    }
+    .tip-box { background: rgba(184,235,212,.35); }
+    .why-box { background: rgba(255,224,138,.4); font-style: italic; }
+
+    .action-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 2px dashed rgba(61, 50, 41, 0.15);
+    }
+    .btn-action {
+      padding: 12px 6px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 2.5px solid var(--brown);
+      border-radius: 12px;
+      box-shadow: 3px 3px 0 var(--brown);
+      cursor: pointer;
+      background: #fff;
+      color: var(--brown);
+    }
+    .btn-action.orange { background: var(--orange); color: #fff; }
+    .btn-action.mint { background: var(--mint); }
+
+    .api-key-badge {
+      font-size: 11px;
+      color: var(--brown-soft);
+      opacity: .5;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    @media print {
+      html, body { overflow: visible; height: auto; }
+      #app { position: static; height: auto; }
+      .screen { display: none !important; }
+      #page-recipe.active { display: block !important; position: static; opacity: 1; visibility: visible; transform: none; }
+      .no-print, .screen-footer, .action-bar, .top-bar, .nav-back { display: none !important; }
+      #page-recipe .screen-scroll { overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+
+    <!-- PAGE 1: COVER -->
+    <section id="page-cover" class="screen active">
+      <div class="screen-scroll" id="scroll-cover">
+      <div class="screen-body">
+        <div class="top-bar">
+          <div class="seg-control">
+            <button type="button" class="seg-btn active" data-lang="en">EN</button>
+            <button type="button" class="seg-btn" data-lang="zh">中文</button>
+          </div>
+        </div>
+
+        <div class="cover-hero">
+          <div class="hero-icon-wrap" aria-hidden="true">🧑‍🍳</div>
+          <p class="cover-eyebrow hand" data-i18n="coverEyebrow">Tonight's dinner</p>
+          <h1 class="cover-title">
+            <span data-i18n="appName">FridgeChef</span>
+            <span class="hand" data-i18n="coverHandline">your cozy kitchen buddy</span>
+          </h1>
+          <p class="cover-subtitle serif" data-i18n="coverTagline">
+            Turn what's in your fridge into a simple, warm home-cooked meal.
+          </p>
+          <div class="cover-features">
+            <div class="feat-pill"><span>🥦</span><span data-i18n="feat1">Zero waste</span></div>
+            <div class="feat-pill"><span>⏱</span><span data-i18n="feat2">Quick & easy</span></div>
+            <div class="feat-pill"><span>✨</span><span data-i18n="feat3">AI magic</span></div>
+          </div>
+        </div>
+
+        <div class="cover-cta-wrap">
+          <button type="button" class="btn-primary" id="btnStart" data-i18n="coverStart">
+            Open My Fridge
+          </button>
+          <p class="cover-footnote" data-i18n="coverFootnote">No signup · Works offline after load</p>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: INGREDIENTS -->
+    <section id="page-ingredients" class="screen">
+      <div class="screen-scroll" id="scroll-ingredients">
+        <div class="screen-body">
+          <div class="top-bar" style="justify-content:space-between">
+            <button type="button" class="nav-back" id="btnBackToCover">← <span data-i18n="backCover">Home</span></button>
+            <div class="seg-control">
+              <button type="button" class="seg-btn" data-lang="en">EN</button>
+              <button type="button" class="seg-btn" data-lang="zh">中文</button>
+            </div>
+          </div>
+
+          <h2 class="page-title">🧑‍🍳 <span data-i18n="ingredientsTitle">My Fridge</span></h2>
+          <p class="page-desc" data-i18n="ingredientsSubtitle">Add ingredients with +, then tap to select what to use.</p>
+
+          <div class="card">
+            <div class="prefs-block">
+              <p class="prefs-block-title" data-i18n="menuPrefsTitle">Today's menu</p>
+              <div class="prefs-main">
+                <label><span class="hand" data-i18n="mealType">🍽 Meal</span><select id="mealType"></select></label>
+                <label><span class="hand" data-i18n="cuisineStyle">🌍 Cuisine</span><select id="cuisineStyle"></select></label>
+              </div>
+            </div>
+            <label>
+              <span class="card-label" data-i18n="addIngredientLabel">Add ingredient</span>
+              <div class="add-row">
+                <input type="text" id="ingredientInput" data-i18n-placeholder="ingredientPlaceholder" placeholder="e.g. broccoli" maxlength="80" />
+                <button type="button" class="btn-plus" id="btnAddIngredient">+</button>
+              </div>
+            </label>
+            <p class="select-hint hand" data-i18n="tapToSelect">Tap below to select / deselect</p>
+            <div id="ingredientPool" class="ingredient-pool empty-hint" data-hint=""></div>
+
+            <details style="margin-top:16px" open>
+              <summary data-i18n="prefsSummary">More preferences (optional)</summary>
+              <div class="prefs">
+                <label><span class="hand" data-i18n="cookingTime">⏱ Time</span><select id="cookingTime"></select></label>
+                <label><span class="hand" data-i18n="taste">😋 Taste</span><select id="tastePreference"></select></label>
+                <label><span class="hand" data-i18n="difficulty">📊 Level</span><select id="difficulty"></select></label>
+                <label><span class="hand" data-i18n="lazyMode">😴 Lazy</span><select id="lazyMode"></select></label>
+                <label><span class="hand" data-i18n="dietary">🥗 Diet</span><select id="dietaryRestriction"></select></label>
+              </div>
+            </details>
+
+            <div id="validationError" class="error"></div>
+            <button type="button" class="btn-primary btn-block" id="btnGenerate" data-i18n="generateBtn">Generate My Recipe</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 3: LOADING -->
+    <section id="page-loading" class="screen">
+      <div class="screen-scroll">
+      <div class="screen-body" style="min-height:80dvh;justify-content:center;align-items:center;text-align:center">
+        <div class="loading-emoji">🧑‍🍳</div>
+        <div class="loader-ring"></div>
+        <p class="loading-text" data-i18n="loadingText">Cooking up an idea…</p>
+      </div>
+      </div>
+    </section>
+
+    <!-- PAGE 4: RECIPE -->
+    <section id="page-recipe" class="screen">
+      <div class="screen-scroll" id="scroll-recipe">
+        <div class="screen-body">
+          <div class="top-bar no-print">
+            <button type="button" class="nav-back" id="btnBackToIngredients">← <span data-i18n="backIngredients">Fridge</span></button>
+            <div class="seg-control">
+              <button type="button" class="seg-btn" data-lang="en">EN</button>
+              <button type="button" class="seg-btn" data-lang="zh">中文</button>
+            </div>
+          </div>
+          <div id="apiError" class="error" style="margin-bottom:8px"></div>
+          <div id="recipeContent"></div>
+        </div>
+      </div>
+      <div class="screen-footer no-print">
+        <div class="action-bar" id="recipeActions" style="display:none">
+          <button type="button" class="btn-action" id="btnBack" data-i18n="backBtn">← Back</button>
+          <button type="button" class="btn-action orange" id="btnRegenerate" data-i18n="regenerateBtn">🔄 New dish</button>
+          <button type="button" class="btn-action mint" id="btnPrint" data-i18n="printBtn">🖨 Print</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    /* ✅ API Key 已内置在下方，无需额外配置 */
+    const DEEPSEEK_API_KEY = "sk-a3071ce1850142b8aee115b469c55c5e";
+    const DEEPSEEK_MODEL = "deepseek-chat";
+
+    let lang = localStorage.getItem("fridgechef-lang") || "en";
+    let ingredients = [];
+    let currentRecipe = null;
+    let previousDishNames = [];
+
+    const I18N = {
+      en: {
+        appName: "FridgeChef",
+        coverEyebrow: "Today's Menu",
+        coverHandline: "your cozy kitchen buddy",
+        coverTagline: "Turn what's in your fridge into a warm meal — breakfast, lunch, dinner, or a sweet treat.",
+        feat1: "Zero waste",
+        feat2: "Quick & easy",
+        feat3: "AI powered",
+        coverStart: "Open My Fridge",
+        coverFootnote: "Built-in AI · Ready to cook",
+        backCover: "Home",
+        ingredientsTitle: "My Fridge",
+        ingredientsSubtitle: "Add ingredients with +, then tap to select. Pick meal & cuisine below.",
+        addIngredientLabel: "Add ingredient",
+        menuPrefsTitle: "Today's menu",
+        mealType: "🍽 Meal",
+        cuisineStyle: "🌍 Cuisine",
+        mealBreakfast: "Breakfast",
+        mealLunch: "Lunch",
+        mealDinner: "Dinner",
+        mealSnack: "Snack",
+        mealDessert: "Dessert",
+        cuisineNoPref: "Surprise me",
+        cuisineChinese: "Chinese",
+        cuisineJapanese: "Japanese",
+        cuisineKorean: "Korean",
+        cuisineItalian: "Italian",
+        cuisineFrench: "French",
+        cuisineThai: "Thai",
+        cuisineAmerican: "American",
+        cuisineMexican: "Mexican",
+        cuisineIndian: "Indian",
+        cuisineMediterranean: "Mediterranean",
+        cuisineVietnamese: "Vietnamese",
+        servings: "Servings",
+        prepTime: "Prep",
+        pairing: "Goes well with",
+        description: "About this dish",
+        ingredientPlaceholder: "e.g. broccoli",
+        tapToSelect: "Tap below to select / deselect",
+        poolEmpty: "Your ingredients appear here",
+        prefsSummary: "More preferences (optional)",
+        cookingTime: "⏱ Time", taste: "😋 Taste", difficulty: "📊 Level",
+        lazyMode: "😴 Lazy", dietary: "🥗 Diet",
+        generateBtn: "Generate My Recipe",
+        loadingText: "Cooking up an idea…",
+        backIngredients: "Fridge",
+        backBtn: "Back",
+        regenerateBtn: "🔄 New dish",
+        printBtn: "Print",
+        errEmptySelect: "Select at least one ingredient!",
+        errDuplicate: "Already in your list.",
+        errEmptyInput: "Type an ingredient first.",
+        errApi: "Kitchen got messy — try again.",
+        fromFridge: "From your fridge",
+        seasonings: "Seasonings",
+        steps: "Steps",
+        tip: "Tip",
+        noPref: "No preference", time10: "10 min", time15: "15 min", time30: "30 min",
+        light: "Light", spicy: "Spicy", savory: "Savory", sweet: "Sweet",
+        beginner: "Beginner", easy: "Easy", normal: "Normal",
+        lazyNone: "None", onePan: "One pan", lowWash: "Low wash-up",
+        microwave: "Microwave", noChop: "No chopping", lazyBeginner: "Beginner friendly",
+        dietNone: "None", vegetarian: "Vegetarian", noBeef: "No beef",
+        noSeafood: "No seafood", lowFat: "Low fat",
+      },
+      zh: {
+        appName: "冰箱大厨",
+        coverEyebrow: "今日菜单",
+        coverHandline: "你的暖心厨房小助手",
+        coverTagline: "把冰箱里的食材变成暖心一餐——早餐、午餐、晚餐或甜点零食都行。",
+        feat1: "零浪费",
+        feat2: "快手省事",
+        feat3: "AI 生成",
+        coverStart: "打开我的冰箱",
+        coverFootnote: "已内置 AI · 开箱即用",
+        backCover: "首页",
+        ingredientsTitle: "我的冰箱",
+        ingredientsSubtitle: "输入食材后点 + 添加并选择，再在下方选餐次和菜系。",
+        addIngredientLabel: "添加食材",
+        menuPrefsTitle: "今日菜单",
+        mealType: "🍽 餐次",
+        cuisineStyle: "🌍 菜系",
+        mealBreakfast: "早餐",
+        mealLunch: "午餐",
+        mealDinner: "晚餐",
+        mealSnack: "零食",
+        mealDessert: "甜点",
+        cuisineNoPref: "随便来点",
+        cuisineChinese: "中式",
+        cuisineJapanese: "日式",
+        cuisineKorean: "韩式",
+        cuisineItalian: "意式",
+        cuisineFrench: "法式",
+        cuisineThai: "泰式",
+        cuisineAmerican: "美式",
+        cuisineMexican: "墨西哥",
+        cuisineIndian: "印度",
+        cuisineMediterranean: "地中海",
+        cuisineVietnamese: "越南",
+        servings: "份量",
+        prepTime: "准备",
+        pairing: "搭配建议",
+        description: "菜品介绍",
+        ingredientPlaceholder: "例如：西兰花",
+        tapToSelect: "点击下方选择 / 取消",
+        poolEmpty: "食材会显示在这里",
+        prefsSummary: "更多偏好（可选）",
+        cookingTime: "⏱ 时间", taste: "😋 口味", difficulty: "📊 难度",
+        lazyMode: "😴 懒人", dietary: "🥗 饮食",
+        generateBtn: "生成我的菜谱",
+        loadingText: "正在为你想菜谱…",
+        backIngredients: "冰箱",
+        backBtn: "返回",
+        regenerateBtn: "🔄 换一道菜",
+        printBtn: "打印",
+        errEmptySelect: "请至少选择一种食材！",
+        errDuplicate: "已在列表中。",
+        errEmptyInput: "请先输入食材。",
+        errApi: "出错了，请再试一次。",
+        fromFridge: "来自冰箱",
+        seasonings: "调味料",
+        steps: "步骤",
+        tip: "小贴士",
+        noPref: "无偏好", time10: "10 分钟", time15: "15 分钟", time30: "30 分钟",
+        light: "清淡", spicy: "辣", savory: "咸香", sweet: "甜",
+        beginner: "新手", easy: "简单", normal: "普通",
+        lazyNone: "无", onePan: "一锅搞定", lowWash: "少洗碗",
+        microwave: "微波炉", noChop: "免切菜", lazyBeginner: "新手友好",
+        dietNone: "无", vegetarian: "素食", noBeef: "不吃牛肉",
+        noSeafood: "不吃海鲜", lowFat: "低脂",
+      },
+    };
+
+    function t(k) { return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
+
+    let currentScreenId = "page-cover";
+
+    function resetScroll(screenId) {
+      const screen = document.getElementById(screenId);
+      if (!screen) return;
+      const scroller = screen.querySelector(".screen-scroll");
+      if (scroller) scroller.scrollTop = 0;
+    }
+
+    function showPage(id) {
+      const next = document.getElementById(id);
+      if (!next || id === currentScreenId) return;
+
+      document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+      next.classList.add("active");
+      currentScreenId = id;
+      resetScroll(id);
+    }
+
+    function setLang(newLang) {
+      lang = newLang;
+      localStorage.setItem("fridgechef-lang", lang);
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.querySelectorAll(".seg-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.lang === lang);
+      });
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const k = el.dataset.i18n;
+        if (I18N[lang][k]) el.textContent = I18N[lang][k];
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        const k = el.dataset.i18nPlaceholder;
+        if (I18N[lang][k]) el.placeholder = I18N[lang][k];
+      });
+      const pool = document.getElementById("ingredientPool");
+      pool.dataset.hint = t("poolEmpty");
+      pool.classList.toggle("empty-hint", ingredients.length === 0);
+      fillSelectOptions();
+      if (currentRecipe) renderRecipeCard(currentRecipe);
+    }
+
+    function fillSelectOptions() {
+      const opts = {
+        mealType: [
+          ["breakfast","mealBreakfast"],["lunch","mealLunch"],["dinner","mealDinner"],
+          ["snack","mealSnack"],["dessert","mealDessert"],
+        ],
+        cuisineStyle: [
+          ["no preference","cuisineNoPref"],["chinese","cuisineChinese"],["japanese","cuisineJapanese"],
+          ["korean","cuisineKorean"],["italian","cuisineItalian"],["french","cuisineFrench"],
+          ["thai","cuisineThai"],["american","cuisineAmerican"],["mexican","cuisineMexican"],
+          ["indian","cuisineIndian"],["mediterranean","cuisineMediterranean"],["vietnamese","cuisineVietnamese"],
+        ],
+        cookingTime: [["no preference","noPref"],["10 min","time10"],["15 min","time15"],["30 min","time30"]],
+        tastePreference: [["no preference","noPref"],["light","light"],["spicy","spicy"],["savory","savory"],["sweet","sweet"]],
+        difficulty: [["beginner","beginner"],["easy","easy"],["normal","normal"]],
+        lazyMode: [["none","lazyNone"],["one pan only","onePan"],["low washing-up","lowWash"],["microwave only","microwave"],["no chopping","noChop"],["beginner friendly","lazyBeginner"]],
+        dietaryRestriction: [["none","dietNone"],["vegetarian","vegetarian"],["no beef","noBeef"],["no seafood","noSeafood"],["low fat","lowFat"]],
+      };
+      for (const [id, items] of Object.entries(opts)) {
+        const sel = document.getElementById(id);
+        const prev = sel.value;
+        sel.innerHTML = items.map(([v,k]) => `<option value="${v}">${t(k)}</option>`).join("");
+        if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+      }
+    }
+
+    function renderIngredientPool() {
+      const pool = document.getElementById("ingredientPool");
+      pool.innerHTML = "";
+      pool.classList.toggle("empty-hint", ingredients.length === 0);
+      pool.dataset.hint = t("poolEmpty");
+      ingredients.forEach((item) => {
+        const chip = document.createElement("span");
+        chip.className = "chip" + (item.selected ? " selected" : "");
+        chip.innerHTML = `${escapeHtml(item.name)}<span class="chip-x" data-remove="${item.id}">×</span>`;
+        chip.onclick = (e) => {
+          if (e.target.dataset.remove) {
+            e.stopPropagation();
+            ingredients = ingredients.filter(i => i.id !== item.id);
+            renderIngredientPool();
+            return;
+          }
+          item.selected = !item.selected;
+          renderIngredientPool();
+        };
+        pool.appendChild(chip);
+      });
+    }
+
+    function addIngredient() {
+      const input = document.getElementById("ingredientInput");
+      const name = input.value.trim();
+      hideError("validationError");
+      if (!name) { showError("validationError", t("errEmptyInput")); return; }
+      if (ingredients.some(i => i.name.toLowerCase() === name.toLowerCase())) {
+        showError("validationError", t("errDuplicate")); return;
+      }
+      ingredients.push({ id: crypto.randomUUID(), name, selected: true });
+      input.value = "";
+      input.focus();
+      renderIngredientPool();
+    }
+
+    function getSelectedIngredients() {
+      return ingredients.filter(i => i.selected).map(i => i.name);
+    }
+
+    function getFormData() {
+      const selected = getSelectedIngredients();
+      return {
+        ingredients: selected.join(", "),
+        mealType: document.getElementById("mealType").value,
+        cuisineStyle: document.getElementById("cuisineStyle").value,
+        cookingTime: document.getElementById("cookingTime").value,
+        tastePreference: document.getElementById("tastePreference").value,
+        difficulty: document.getElementById("difficulty").value,
+        lazyMode: document.getElementById("lazyMode").value,
+        dietaryRestriction: document.getElementById("dietaryRestriction").value,
+      };
+    }
+
+    function buildPrompt(data, isRegenerate, avoidDishes) {
+      const langNote = lang === "zh"
+        ? "请用中文返回全部菜谱内容。"
+        : "Return all recipe content in English.";
+
+      const prefs = [];
+      prefs.push("Meal type (MUST match): " + data.mealType);
+      if (data.cuisineStyle !== "no preference") {
+        prefs.push("Cuisine style (MUST strongly follow): " + data.cuisineStyle);
+      } else {
+        prefs.push("Cuisine style: chef's choice — pick any fitting cuisine");
+      }
+      if (data.cookingTime !== "no preference") prefs.push("Max cooking time: " + data.cookingTime);
+      if (data.tastePreference !== "no preference") prefs.push("Taste: " + data.tastePreference);
+      if (data.difficulty) prefs.push("Difficulty: " + data.difficulty);
+      if (data.lazyMode !== "none") prefs.push("Lazy mode: " + data.lazyMode);
+      if (data.dietaryRestriction !== "none") prefs.push("Dietary: " + data.dietaryRestriction);
+      const prefsBlock = "\nUser preferences:\n- " + prefs.join("\n- ");
+
+      let variationBlock = "";
+      if (isRegenerate && avoidDishes.length > 0) {
+        const styles = lang === "zh"
+          ? "炒、煮、蒸、烤、凉拌、盖饭、汤、煎、焗、火锅式"
+          : "stir-fry, boil, steam, bake, salad, rice bowl, soup, pan-fry, gratin, hot-pot style";
+        variationBlock = `
+=== REGENERATE — MUST BE VERY DIFFERENT ===
+The user clicked "new dish" and wants a COMPLETELY DIFFERENT recipe from before.
+
+Previous dishes — DO NOT repeat these names or near-identical dishes:
+${avoidDishes.map((n, i) => `${i + 1}. ${n}`).join("\n")}
+
+You MUST:
+- Pick a DIFFERENT dish name and dish type (e.g. switch cooking method/category)
+- Use a DIFFERENT cuisine angle or flavor profile when possible
+- Write DIFFERENT steps — not just rewording the same recipe
+- Try a different combination of the same ingredients (emphasize different items)
+- Consider these alternative styles: ${styles}
+- Be creative and surprising while staying practical for home cooks`;
+      }
+
+      const mealGuide = {
+        breakfast: "morning-friendly, energizing, not too heavy",
+        lunch: "balanced midday meal, satisfying but not greasy",
+        dinner: "comforting main meal for evening",
+        snack: "light bite, quick finger food or small plate",
+        dessert: "sweet treat or dessert using ingredients creatively",
+      };
+
+      return `You are FridgeChef, an expert home cooking assistant.
+${langNote}
+${variationBlock}
+
+Selected ingredients: ${data.ingredients.trim()}
+${prefsBlock}
+
+Meal context: This is for "${data.mealType}" — make it ${mealGuide[data.mealType] || "appropriate for the meal"}.
+
+Create ONE detailed, practical, restaurant-quality HOME recipe that fits the meal type and cuisine.
+
+Content requirements:
+- Rich "description": 2-3 full sentences describing the dish, texture, and why it's perfect for this meal
+- "usedIngredients": list ALL selected ingredients you actually use (with amounts like "2 eggs" when helpful)
+- "extraSeasonings": list 4-8 seasonings/oils/garnishes with brief amounts (e.g. "1 tbsp soy sauce")
+- "steps": exactly 4-5 steps; EACH step must be detailed (2-3 sentences) with heat level, timing, and visual cues
+- "tip": 2 sentences of pro home-cook advice
+- "whyThisWorks": 2 sentences on ingredient pairing
+- "pairing": suggest 1 drink or side that matches the cuisine
+- "servings": e.g. "1-2 people"
+- "prepTime" and "estimatedTime" (total) must be realistic
+
+Return ONLY valid JSON:
+{
+  "dishName": "",
+  "mealType": "",
+  "cuisineStyle": "",
+  "servings": "",
+  "prepTime": "",
+  "estimatedTime": "",
+  "difficulty": "",
+  "description": "",
+  "usedIngredients": [],
+  "extraSeasonings": [],
+  "steps": [],
+  "tip": "",
+  "whyThisWorks": "",
+  "pairing": ""
+}`;
+    }
+
+    async function fetchRecipe(isRegenerate = false) {
+      const selected = getSelectedIngredients();
+      if (!selected.length) {
+        showError("validationError", t("errEmptySelect"));
+        return false;
+      }
+
+      const data = getFormData();
+
+      let avoidDishes = [...new Set(previousDishNames)];
+      if (isRegenerate && currentRecipe?.dishName) {
+        avoidDishes.push(currentRecipe.dishName);
+        avoidDishes = [...new Set(avoidDishes)];
+      }
+
+      showPage("page-loading");
+      hideError("apiError");
+
+      const temperature = isRegenerate
+        ? Math.min(1.25, 1.0 + avoidDishes.length * 0.03)
+        : 0.85;
+
+      try {
+        const res = await fetch("https://api.deepseek.com/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + DEEPSEEK_API_KEY,
+          },
+          body: JSON.stringify({
+            model: DEEPSEEK_MODEL,
+            messages: [
+              {
+                role: "system",
+                content: isRegenerate
+                  ? "You are a creative chef. Always output valid JSON only. When regenerating, maximize variety and never repeat previous dish concepts."
+                  : "You are a helpful home cooking assistant. Output valid JSON only.",
+              },
+              { role: "user", content: buildPrompt(data, isRegenerate, avoidDishes) },
+            ],
+            response_format: { type: "json_object" },
+            temperature,
+            top_p: isRegenerate ? 0.95 : 0.9,
+            max_tokens: 2200,
+          }),
+        });
+
+        if (!res.ok) throw new Error("API " + res.status);
+        const json = await res.json();
+        const content = json.choices?.[0]?.message?.content;
+        if (!content) throw new Error("empty");
+
+        const newRecipe = JSON.parse(content);
+
+        if (newRecipe.dishName) {
+          previousDishNames = [...new Set([...avoidDishes, newRecipe.dishName])].slice(-8);
+        }
+
+        currentRecipe = newRecipe;
+        renderRecipeCard(currentRecipe);
+        showPage("page-recipe");
+        document.getElementById("recipeActions").style.display = "grid";
+        return true;
+      } catch (e) {
+        console.error(e);
+        showPage("page-recipe");
+        document.getElementById("recipeContent").innerHTML = "";
+        showError("apiError", t("errApi"));
+        document.getElementById("recipeActions").style.display = "grid";
+        return false;
+      }
+    }
+
+    function labelMeal(val) {
+      const map = {
+        breakfast: "mealBreakfast", lunch: "mealLunch", dinner: "mealDinner",
+        snack: "mealSnack", dessert: "mealDessert",
+      };
+      return t(map[val] || val);
+    }
+    function labelCuisine(val) {
+      const map = {
+        chinese: "cuisineChinese", japanese: "cuisineJapanese", korean: "cuisineKorean",
+        italian: "cuisineItalian", french: "cuisineFrench", thai: "cuisineThai",
+        american: "cuisineAmerican", mexican: "cuisineMexican", indian: "cuisineIndian",
+        mediterranean: "cuisineMediterranean", vietnamese: "cuisineVietnamese",
+        "no preference": "cuisineNoPref",
+      };
+      return t(map[val] || val);
+    }
+
+    function renderRecipeCard(r) {
+      if (!r) return;
+      hideError("apiError");
+      const meal = r.mealType ? labelMeal(r.mealType) : labelMeal(document.getElementById("mealType").value);
+      const cuisine = r.cuisineStyle ? labelCuisine(r.cuisineStyle) : labelCuisine(document.getElementById("cuisineStyle").value);
+      document.getElementById("recipeContent").innerHTML = `
+        <article class="card recipe-card">
+          <h2 class="recipe-title">🧑‍🍳 ${escapeHtml(r.dishName)}</h2>
+          <div class="recipe-meta-row meta">
+            <span class="tag tag-m">🍽 ${escapeHtml(meal)}</span>
+            <span class="tag tag-m">🌍 ${escapeHtml(cuisine)}</span>
+            ${r.servings ? `<span class="tag">👥 ${escapeHtml(r.servings)}</span>` : ""}
+            ${r.prepTime ? `<span class="tag tag-y">🔪 ${t("prepTime")} ${escapeHtml(r.prepTime)}</span>` : ""}
+            <span class="tag tag-y">⏱ ${escapeHtml(r.estimatedTime)}</span>
+            <span class="tag">${escapeHtml(r.difficulty)}</span>
+          </div>
+          ${r.description ? `<p class="recipe-desc serif"><strong>${t("description")}:</strong> ${escapeHtml(r.description)}</p>` : ""}
+          <h3 class="sec">${t("fromFridge")}</h3>
+          <div>${(r.usedIngredients||[]).map(i=>`<span class="tag">${escapeHtml(i)}</span>`).join("")}</div>
+          <h3 class="sec">${t("seasonings")}</h3>
+          <div>${(r.extraSeasonings||[]).map(i=>`<span class="tag tag-y">${escapeHtml(i)}</span>`).join("")}</div>
+          <h3 class="sec">${t("steps")}</h3>
+          ${(r.steps||[]).map((s,i)=>`<div class="step"><span class="step-num">${i+1}</span><p>${escapeHtml(s)}</p></div>`).join("")}
+          <div class="tip-box"><strong>💡 ${t("tip")}:</strong> ${escapeHtml(r.tip)}</div>
+          <div class="why-box">✨ ${escapeHtml(r.whyThisWorks)}</div>
+          ${r.pairing ? `<div class="tip-box" style="background:rgba(255,179,71,.2);border-color:var(--orange)"><strong>🥂 ${t("pairing")}:</strong> ${escapeHtml(r.pairing)}</div>` : ""}
+        </article>`;
+      resetScroll("page-recipe");
+    }
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+    function hideError(id) {
+      const el = document.getElementById(id);
+      el.style.display = "none";
+      el.textContent = "";
+    }
+    function escapeHtml(str) {
+      const d = document.createElement("div");
+      d.textContent = str ?? "";
+      return d.innerHTML;
+    }
+
+    document.getElementById("btnStart").onclick = () => showPage("page-ingredients");
+    document.getElementById("btnBackToCover").onclick = () => showPage("page-cover");
+    document.getElementById("btnBackToIngredients").onclick = () => showPage("page-ingredients");
+    document.getElementById("btnAddIngredient").onclick = addIngredient;
+    document.getElementById("ingredientInput").onkeydown = (e) => {
+      if (e.key === "Enter") { e.preventDefault(); addIngredient(); }
+    };
+    document.getElementById("btnGenerate").onclick = () => {
+      hideError("validationError");
+      previousDishNames = [];
+      fetchRecipe(false);
+    };
+    document.getElementById("btnBack").onclick = () => showPage("page-ingredients");
+    document.getElementById("btnRegenerate").onclick = () => fetchRecipe(true);
+    document.getElementById("btnPrint").onclick = () => window.print();
+    document.querySelectorAll(".seg-btn").forEach(btn => {
+      btn.onclick = () => setLang(btn.dataset.lang);
+    });
+
+    setLang(lang);
+    renderIngredientPool();
+    const mealEl = document.getElementById("mealType");
+    const savedMeal = localStorage.getItem("fridgechef-meal");
+    if (mealEl) {
+      mealEl.value = savedMeal || "dinner";
+      mealEl.onchange = () => localStorage.setItem("fridgechef-meal", mealEl.value);
+    }
+  </script>
+</body>
+</html>
